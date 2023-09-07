@@ -1,5 +1,4 @@
 python_dotenv==1.1.0
 aiogram==2.25.1
-virtualenv==20.24.3
 psycopg2
 flake8
