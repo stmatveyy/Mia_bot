@@ -23,11 +23,12 @@ CREATE TABLE "public.notes" (
 
 
 CREATE TABLE "public.schedule_even" (
-	"mon" character NOT NULL,
-	"tue" character NOT NULL,
-	"wen" character NOT NULL,
-	"thu" character NOT NULL,
-	"fri" character NOT NULL
+	"id" int NOT NULL UNIQUE,
+	"mon" text NOT NULL,
+	"tue" text NOT NULL,
+	"wen" text NOT NULL,
+	"thu" text NOT NULL,
+	"fri" text NOT NULL
 ) WITH (
   OIDS=FALSE
 );
@@ -35,11 +36,11 @@ CREATE TABLE "public.schedule_even" (
 
 
 CREATE TABLE "public.schedule_uneven" (
-	"mon" character NOT NULL,
-	"tue" character NOT NULL,
-	"wen" character NOT NULL,
-	"thu" character NOT NULL,
-	"fri" character NOT NULL
+	"mon" text NOT NULL,
+	"tue" text NOT NULL,
+	"wen" text NOT NULL,
+	"thu" text NOT NULL,
+	"fri" text NOT NULL
 ) WITH (
   OIDS=FALSE
 );

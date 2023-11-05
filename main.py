@@ -35,8 +35,6 @@ class FSMnotifications(StatesGroup):
     turned_on = State()
     turned_off = State()
 
-#main_keyboard = ReplyKeyboardMarkup(resize_keyboard=True) TODO: Узнать про клавиатуру
-
 print('[INFO] Bot is working now...')
 
 
@@ -65,6 +63,7 @@ async def start_notifications(callback: CallbackQuery, state: FSMContext):
                     minute = datetime.now().minute + 1, start_date = datetime.now(), kwargs={'bot':bot,'msg_id' : chat_id})
     scheduler.add_job(send_message_interval, trigger='interval', seconds = 5, kwargs={'bot':bot,'msg_id':chat_id})
     scheduler.start()
+    scheduler.print_jobs()
     await state.set_state(FSMnotifications.turned_on)
 
 @dp.callback_query(StateFilter(FSMnotifications.turned_on),F.data == 'button_is_off')
@@ -94,4 +93,5 @@ try:
         asyncio.run(main())
 except KeyboardInterrupt:
     scheduler.shutdown()
+
     pass

@@ -1,5 +1,9 @@
 .env
 /__pycache__
 /.vscode
-
-
+/database/__pycache__
+/filters/__pycache__
+/handlers/__pycache__
+/dev
+/database/sched_even_backup
+/database/sched_uneven_backup
