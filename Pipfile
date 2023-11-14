@@ -8,6 +8,7 @@ apscheduler = "*"
 aiogram = "*"
 psycopg2 = "*"
 python-dotenv = "*"
+g4f = "*"
 
 [dev-packages]
 

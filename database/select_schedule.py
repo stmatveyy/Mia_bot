@@ -22,7 +22,7 @@ def get_todays_schedule() -> any:
         return 'Сегодня выходной, можно отдыхать!'
     else:
         data = database.database.postgres_do_view(f'''
-    SELECT fri FROM "{week_to_select}"''')
+    SELECT {curr_weekday} FROM "{week_to_select}"''')
         fin_list= []
         for i in range(len(data)):
             try:
