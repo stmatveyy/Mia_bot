@@ -1,6 +1,6 @@
 import g4f
 import asyncio
-g4f.debug.logging = False  # Enable logging
+g4f.debug.logging = True  # Enable logging
 g4f.check_version = False
 
 _providers = [

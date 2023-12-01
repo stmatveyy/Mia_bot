@@ -1,7 +1,7 @@
-import database.database
+from database import database_func
 from datetime import datetime
 import asyncio
-def get_todays_schedule() -> any:
+async def get_todays_schedule() -> any:
     int_to_date = {1:'mon',
                 2:'tue',
                 3:'wen',
@@ -19,9 +19,9 @@ def get_todays_schedule() -> any:
         week_to_select = 'public.schedule_even'
     
     if curr_weekday == 'sat' or curr_weekday == 'sun':
-        return 'Сегодня выходной, можно отдыхать!'
+        return 'Сегодня выходной, иди нахуй!'
     else:
-        data = database.database.postgres_do_view(f'''
+        data = await database_func.postgres_do_view(f'''
     SELECT {curr_weekday} FROM "{week_to_select}"''')
         fin_list= []
         for i in range(len(data)):

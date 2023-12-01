@@ -9,6 +9,7 @@ aiogram = "*"
 psycopg2 = "*"
 python-dotenv = "*"
 g4f = "*"
+asyncpg = "*"
 
 [dev-packages]
 
