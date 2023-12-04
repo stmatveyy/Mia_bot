@@ -22,13 +22,13 @@ async def postgres_do_change(query) -> None:
         await connection.execute(query)
         
     except Exception as _ex:
-        print('[INFO] Упс! База данных наебнулась...', _ex)
+        print('[INFO] Ошибка: ', _ex)
 
 
     finally:
         if connection:
             await connection.close()
-            print('[INFO] База данных выключилась')
+
 
 async def postgres_do_view(query) -> str:
     try:
@@ -42,10 +42,9 @@ async def postgres_do_view(query) -> str:
         data = await connection.fetch(query)
 
     except Exception as _ex:
-        print('[INFO] Упс! База данных наебнулась...', _ex)
+        print('[INFO] Ошибка:', _ex)
 
     finally:
         if connection:
             await connection.close()
-            print('[INFO] База данных выключилась')
             return data

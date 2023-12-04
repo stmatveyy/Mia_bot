@@ -9,3 +9,17 @@ noti_off_button = InlineKeyboardButton(text='Уведомления: 🔔',
 
 settings_exit_button = InlineKeyboardButton(text='Закрыть',
                                             callback_data='settings_exit')
+
+
+# Клавиатура для заметок
+
+notes_add_button = InlineKeyboardButton(text="Добавить",
+                                        callback_data='add_note')
+
+notes_delete_one_button = InlineKeyboardButton(text="Стереть заметку",
+                                               callback_data='delete_note')
+
+notes_exit_button = InlineKeyboardButton(text='Закрыть',
+                                         callback_data='notes_exit')
+
+notes_back_button = InlineKeyboardButton(text="Назад", callback_data='go_back_notes')
