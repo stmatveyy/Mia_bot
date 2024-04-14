@@ -6,3 +6,12 @@ database/__pycache__
 filters/__pycache__
 keyboards/__pycache__
 
+temp/aio-doc.pdf
+temp/mia_bot_db.pdf
+temp/mia_bot_db.sql
+temp/sched_even_backup.sql
+temp/sched_uneven_backup.sql
+temp/бд_расписание_знаменатель.csv
+temp/бд_расписание_числитель.csv
+temp/dev/features_planned.txt
+temp/dev/requirements.txt

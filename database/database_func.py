@@ -1,50 +1,46 @@
 import asyncpg
-from dotenv import load_dotenv
-import os
+from asyncio import run
+from config_data.config import config
 
-load_dotenv()
+HOST = config.db.host
+USER = config.db.user
+PASSWORD = config.db.password
+DB_NAME = config.db.db_name
 
-HOST = os.getenv("HOST")
-USER = os.getenv("USER")
-PASSWORD = os.getenv("PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+class Database():
+    
+    pool = None
+    def __init__(self) -> None:
+        pass
 
-async def postgres_do_change(query) -> None:
-    try:
-        # соединение с БД
-        connection = await asyncpg.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DB_NAME,
-        )
-
-        await connection.execute(query)
+    async def _ainit_(self):
+        self.pool = await asyncpg.create_pool(host=HOST,
+                                   user=USER,
+                                   password =PASSWORD,
+                                   database=DB_NAME,
+                                   min_size=10,
+                                   max_size=100,
+                                   max_queries=10,
+                                   max_inactive_connection_lifetime=0
+                                   )
+            
         
-    except Exception as _ex:
-        print('[INFO] Ошибка: ', _ex)
+    async def change(self,query:str) -> None:
+        try:
+            async with self.pool.acquire() as connection:
+                await connection.execute(query)
+            
+        except Exception as _ex:
+            print('[INFO] Ошибка: ', _ex)
 
+    async def view(self,query:str) -> str:
+        try:
+            async with self.pool.acquire() as connection:
+                data = await connection.fetch(query)
+                return data
+            
+        except Exception as _ex:
+            print('[INFO] Ошибка:', _ex)
 
-    finally:
-        if connection:
-            await connection.close()
-
-
-async def postgres_do_view(query) -> str:
-    try:
-        # соединение с БД
-        connection = await asyncpg.connect(
-            host=HOST,
-            user=USER,
-            password=PASSWORD,
-            database=DB_NAME
-        )
-        data = await connection.fetch(query)
-
-    except Exception as _ex:
-        print('[INFO] Ошибка:', _ex)
-
-    finally:
-        if connection:
-            await connection.close()
-            return data
+    async def close(self):
+        await self.pool.close()

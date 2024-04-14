@@ -1,21 +1,95 @@
 from aiogram import Bot,Router
+from aiogram import F
 from aiogram.types import Message
-from datetime import datetime
+from aiogram.filters import StateFilter
+from aiogram.types import InlineKeyboardMarkup, CallbackQuery
+
+from datetime import datetime, timedelta
+
 import database.select_schedule
 import asyncio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import FSM
+import keyboards
 async def schedule():
     return await database.select_schedule.get_todays_schedule()
 
-schedule_for_today = asyncio.run(schedule())
+# schedule_for_today = asyncio.run(schedule()) ## НЕ ТЕСТИРОВАЛОСЬ.
 
+scheduler = AsyncIOScheduler()
 apsched_router = Router(name="apsched_router")
-@apsched_router.message()
-async def send_message_cron(bot:Bot,msg_id: int):
-    await bot.send_message(chat_id=msg_id, text=schedule_for_today) ## расписание, ежедневно
-@apsched_router.message()
-async def send_message_time(bot:Bot,msg_id: int):
 
+async def send_message_cron(bot:Bot,msg_id: int):
+    await bot.send_message(chat_id=msg_id, text=await schedule()) ## расписание, ежедневно
+
+async def send_message_time(bot:Bot,msg_id: int):
     await bot.send_message(chat_id=msg_id,text="Это сообщение отправится через секунды после старта бота")
-@apsched_router.message()
+
 async def send_message_interval(bot:Bot,msg_id: int):
     await bot.send_message(chat_id=msg_id, text="Частые уведы")
+
+async def shut_down() -> None:
+    scheduler.shutdown()
+
+@apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == True,
+                    F.data == 'noti_button_is_on', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+async def start_notifications(callback: CallbackQuery, bot: Bot):
+    await callback.answer(text='Напоминалки ща будут')
+
+    chat_id = callback.from_user.id
+    scheduler.add_job(send_message_time,
+                      trigger='date',
+                      run_date=datetime.now() + timedelta(seconds=10),
+                      kwargs={'bot': bot, 'msg_id': chat_id})
+
+    scheduler.add_job(send_message_cron,
+                      trigger='cron',
+                      hour=datetime.now().hour,
+                      minute=datetime.now().minute + 1,
+                      start_date=datetime.now(),
+                      kwargs={'bot': bot, 'msg_id': chat_id})
+
+    scheduler.add_job(send_message_interval,
+                      trigger='interval',
+                      seconds=5,
+                      kwargs={'bot': bot, 'msg_id': chat_id})
+
+    scheduler.start()
+    await asyncio.sleep(0.3)
+    await callback.message.edit_text(text="⚙️Настройки⚙️",
+                                     reply_markup=InlineKeyboardMarkup(
+                                                        inline_keyboard=[
+                                                            [keyboards.inline.noti_off_button],
+                                                            [keyboards.inline.settings_exit_button]]
+                                                            ))
+
+    # settings.notification = True
+    # settings.first_time = False
+
+@apsched_router.callback_query(lambda settings: settings.notification == True,
+                   F.data == 'noti_button_is_off', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+async def pause_notifications(callback: CallbackQuery):
+    scheduler.pause()
+    await callback.answer(text='Напоминания приостановлены... ')
+    await asyncio.sleep(0.3)
+    await callback.message.edit_text(text="⚙️Настройки⚙️",
+                                     reply_markup=InlineKeyboardMarkup(
+                                         inline_keyboard=[[keyboards.inline.noti_on_button],
+                                                          [keyboards.inline.settings_exit_button]]))
+
+    # settings.notification = False
+    # settings.first_time = False
+
+@apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == False, F.data == 'noti_button_is_on', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+async def resume_notification(callback: CallbackQuery):
+    scheduler.resume()
+    await callback.answer('Напоминания возобновлены! ')
+    await asyncio.sleep(0.3)
+    await callback.message.edit_text(text="⚙️Настройки⚙️",
+                                     reply_markup=InlineKeyboardMarkup(
+                                                    inline_keyboard=[[keyboards.inline.noti_off_button],
+                                                                     [keyboards.inline.settings_exit_button]]))
+    # settings.notification = True
+    # settings.first_time = False
+
+#TODO: Сделать MagicData и вернуться сюда
