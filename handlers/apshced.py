@@ -32,7 +32,7 @@ async def shut_down() -> None:
     scheduler.shutdown()
 
 @apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == True,
-                    F.data == 'noti_button_is_on', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+                    F.data == 'noti_button_is_on')
 async def start_notifications(callback: CallbackQuery, bot: Bot):
     await callback.answer(text='Напоминалки ща будут')
 
@@ -67,7 +67,7 @@ async def start_notifications(callback: CallbackQuery, bot: Bot):
     # settings.first_time = False
 
 @apsched_router.callback_query(lambda settings: settings.notification == True,
-                   F.data == 'noti_button_is_off', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+                   F.data == 'noti_button_is_off')
 async def pause_notifications(callback: CallbackQuery):
     scheduler.pause()
     await callback.answer(text='Напоминания приостановлены... ')
@@ -80,16 +80,16 @@ async def pause_notifications(callback: CallbackQuery):
     # settings.notification = False
     # settings.first_time = False
 
-@apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == False, F.data == 'noti_button_is_on', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+@apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == False, F.data == 'noti_button_is_on')
 async def resume_notification(callback: CallbackQuery):
     scheduler.resume()
-    await callback.answer('Напоминания возобновлены! ')
+    await callback.answer('Напоминания включены! ')
     await asyncio.sleep(0.3)
     await callback.message.edit_text(text="⚙️Настройки⚙️",
                                      reply_markup=InlineKeyboardMarkup(
                                                     inline_keyboard=[[keyboards.inline.noti_off_button],
                                                                      [keyboards.inline.settings_exit_button]]))
-    # settings.notification = True
+    #settings.notification = True
     # settings.first_time = False
 
 #TODO: Сделать MagicData и вернуться сюда

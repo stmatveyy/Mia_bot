@@ -6,7 +6,7 @@ import asyncpg
 from aiogram import Bot as bt
 from aiogram import Dispatcher, types
 from aiogram.enums import ParseMode
-
+from aiogram.fsm.storage.redis import RedisStorage, Redis
 from handlers.start_and_register import start_router
 from handlers.settings_menu import settings_router
 from handlers.admin import admin_router
@@ -18,16 +18,20 @@ from handlers.wrong_cmd import wrong_cmd_router
 from config_data.config import config
 from database.database_func import Database
 
+from middlewares.database import CommonMiddleWare
+
 HOST = config.db.host
 USER = config.db.user
 PASSWORD = config.db.password
 DB_NAME = config.db.db_name
 
-dp = Dispatcher()
+redis = Redis(host='localhost')
+storage = RedisStorage(redis=redis)
+dp = Dispatcher(storage=storage)
 bot = bt(config.tg_bot.token, parse_mode=ParseMode.HTML)
 database = Database()
 loop = asyncio.get_event_loop()
-
+dp.update.outer_middleware(CommonMiddleWare(database=database))
 
 dp.include_router(apsched_router)
 dp.include_router(start_router)
@@ -47,7 +51,6 @@ settings = Settings(False,True)
 async def main(database:Database):
     
     await database._ainit_()
-    dp['database'] = database
     await dp.start_polling(bot)
 
 try:
@@ -66,3 +69,5 @@ except KeyboardInterrupt:
 
 #TODO: state изменяется на дефолтный при заходе в режим GPT, изучить MagicData + написать Middleware
 # Ссыль: https://mastergroosha.github.io/aiogram-3-guide/filters-and-middlewares/
+
+#TODO: сделать lexicon.py со всеми текстами для работы бота. Можно потом перевести все на английский.

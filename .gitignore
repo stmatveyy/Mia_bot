@@ -15,3 +15,4 @@ temp/бд_расписание_знаменатель.csv
 temp/бд_расписание_числитель.csv
 temp/dev/features_planned.txt
 temp/dev/requirements.txt
+handlers/__pycache__/apshced.cpython-311.pyc
