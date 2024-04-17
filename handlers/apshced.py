@@ -1,7 +1,5 @@
-from aiogram import Bot,Router
+from aiogram import Bot, Router
 from aiogram import F
-from aiogram.types import Message
-from aiogram.filters import StateFilter
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
 
 from datetime import datetime, timedelta
@@ -9,8 +7,9 @@ from datetime import datetime, timedelta
 import database.select_schedule
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import FSM
 import keyboards
+
+
 async def schedule():
     return await database.select_schedule.get_todays_schedule()
 
@@ -19,21 +18,29 @@ async def schedule():
 scheduler = AsyncIOScheduler()
 apsched_router = Router(name="apsched_router")
 
-async def send_message_cron(bot:Bot,msg_id: int):
-    await bot.send_message(chat_id=msg_id, text=await schedule()) ## расписание, ежедневно
 
-async def send_message_time(bot:Bot,msg_id: int):
-    await bot.send_message(chat_id=msg_id,text="Это сообщение отправится через секунды после старта бота")
+async def send_message_cron(bot: Bot, msg_id: int) -> None:
+    '''Отправляет сообщение с расписанием.'''
+    await bot.send_message(chat_id=msg_id, text=await schedule())
 
-async def send_message_interval(bot:Bot,msg_id: int):
+
+async def send_message_time(bot: Bot, msg_id: int) -> None:
+    '''Отправляет сообщение с любым текстом.'''
+    await bot.send_message(chat_id=msg_id,
+                           text="Это сообщение отправится через секунды после старта бота")
+
+
+async def send_message_interval(bot: Bot, msg_id: int) -> None:
+    '''Отправляет сообщение для частых уведомлений.'''
     await bot.send_message(chat_id=msg_id, text="Частые уведы")
+
 
 async def shut_down() -> None:
     scheduler.shutdown()
 
 @apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == True,
                     F.data == 'noti_button_is_on')
-async def start_notifications(callback: CallbackQuery, bot: Bot):
+async def start_notifications(callback: CallbackQuery, bot: Bot) -> None:
     await callback.answer(text='Напоминалки ща будут')
 
     chat_id = callback.from_user.id
@@ -66,9 +73,10 @@ async def start_notifications(callback: CallbackQuery, bot: Bot):
     # settings.notification = True
     # settings.first_time = False
 
+
 @apsched_router.callback_query(lambda settings: settings.notification == True,
                    F.data == 'noti_button_is_off')
-async def pause_notifications(callback: CallbackQuery):
+async def pause_notifications(callback: CallbackQuery) -> None:
     scheduler.pause()
     await callback.answer(text='Напоминания приостановлены... ')
     await asyncio.sleep(0.3)
@@ -81,7 +89,7 @@ async def pause_notifications(callback: CallbackQuery):
     # settings.first_time = False
 
 @apsched_router.callback_query(lambda settings: settings.notification == False and settings.first_time == False, F.data == 'noti_button_is_on')
-async def resume_notification(callback: CallbackQuery):
+async def resume_notification(callback: CallbackQuery) -> None:
     scheduler.resume()
     await callback.answer('Напоминания включены! ')
     await asyncio.sleep(0.3)

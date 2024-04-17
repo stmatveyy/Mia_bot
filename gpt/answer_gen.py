@@ -15,7 +15,9 @@ _providers = [
 ]
 
 
-async def run_provider(provider: g4f.Provider.BaseProvider, prompt: str):
+async def run_provider(provider: g4f.Provider.BaseProvider,
+                       prompt: str) -> None | str:
+
     try:
         response = await g4f.ChatCompletion.create_async(
             model=g4f.models.default,
@@ -31,7 +33,7 @@ async def run_provider(provider: g4f.Provider.BaseProvider, prompt: str):
 
 async def ask_gpt(prompt: str):
     for provider in _providers:
-        task = asyncio.create_task(run_provider(provider,prompt))
+        task = asyncio.create_task(run_provider(provider, prompt))
         while not task.done():
             await asyncio.sleep(0.1)
         if task.done():

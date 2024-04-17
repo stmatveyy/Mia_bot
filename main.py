@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import sys
-import asyncpg
 
 from aiogram import Bot as bt
-from aiogram import Dispatcher, types
+from aiogram import Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 from handlers.start_and_register import start_router
@@ -12,7 +11,7 @@ from handlers.settings_menu import settings_router
 from handlers.admin import admin_router
 from handlers.GPT import gpt_router
 from handlers.notes import notes_router
-from handlers.apshced import apsched_router,shut_down
+from handlers.apshced import apsched_router
 from handlers.wrong_cmd import wrong_cmd_router
 
 from config_data.config import config
@@ -41,15 +40,9 @@ dp.include_router(gpt_router)
 dp.include_router(notes_router)
 dp.include_router(wrong_cmd_router)
 
-class Settings():
-    def __init__(self,notification:bool,first_time:bool) -> None:
-        self.notification = notification
-        self.first_time = first_time
 
-settings = Settings(False,True)
+async def main(database: Database):
 
-async def main(database:Database):
-    
     await database._ainit_()
     await dp.start_polling(bot)
 
@@ -60,14 +53,12 @@ try:
 
 except KeyboardInterrupt:
     loop.run_until_complete(database.close())
-    
-    #asyncio.create_task(shut_down())
+
     print("[INFO] Бот выключен.")
     loop.close()
-    
 
 
-#TODO: state изменяется на дефолтный при заходе в режим GPT, изучить MagicData + написать Middleware
+# TODO: state изменяется на дефолтный при заходе в режим GPT, изучить MagicData + написать Middleware
 # Ссыль: https://mastergroosha.github.io/aiogram-3-guide/filters-and-middlewares/
 
-#TODO: сделать lexicon.py со всеми текстами для работы бота. Можно потом перевести все на английский.
+# TODO: сделать lexicon.py со всеми текстами для работы бота. Можно потом перевести все на английский.
