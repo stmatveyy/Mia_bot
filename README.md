@@ -70,3 +70,4 @@
   - asyncpg
   - datetime
 - PostgreSQL
+- Redis
