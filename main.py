@@ -24,13 +24,17 @@ USER = config.db.user
 PASSWORD = config.db.password
 DB_NAME = config.db.db_name
 
-redis = Redis(host='localhost')
+redis = Redis(host='localhost',port=6379)
+database = Database()
 storage = RedisStorage(redis=redis)
+
 dp = Dispatcher(storage=storage)
 bot = bt(config.tg_bot.token, parse_mode=ParseMode.HTML)
-database = Database()
+
 loop = asyncio.get_event_loop()
-dp.update.outer_middleware(CommonMiddleWare(database=database))
+dp.message.outer_middleware(CommonMiddleWare(database=database, redis=redis))
+dp.edited_message.outer_middleware(CommonMiddleWare(database=database, redis=redis))
+dp.message_reaction.outer_middleware(CommonMiddleWare(database=database, redis=redis))
 
 dp.include_router(apsched_router)
 dp.include_router(start_router)
@@ -42,12 +46,12 @@ dp.include_router(wrong_cmd_router)
 
 
 async def main(database: Database):
-
     await database._ainit_()
     await dp.start_polling(bot)
 
 try:
     if __name__ == "__main__":
+        
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
         loop.run_until_complete(main(database))
 

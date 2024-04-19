@@ -15,6 +15,5 @@ gpt_keyboard = ReplyKeyboardMarkup(keyboard=[[gpt_off_button]],resize_keyboard=T
 
 ## Клава для контактов
 send_num_button = KeyboardButton(text="📱 Отправить",request_contact=True)
-not_send_num_button =KeyboardButton(text="Не хочу отправлять")
-num_keyboard = ReplyKeyboardMarkup(keyboard=[[send_num_button],[not_send_num_button]],resize_keyboard=True)
-num_keyboard2 = ReplyKeyboardMarkup(keyboard=[[send_num_button]],resize_keyboard=True)
+
+num_keyboard = ReplyKeyboardMarkup(keyboard=[[send_num_button]],resize_keyboard=True)
