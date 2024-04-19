@@ -31,7 +31,9 @@
   - asyncio
   - asyncpg
   - datetime
+  - aioredis
 - PostgreSQL
+- Redis
 
 
 
@@ -68,3 +70,4 @@
   - asyncpg
   - datetime
 - PostgreSQL
+- Redis
