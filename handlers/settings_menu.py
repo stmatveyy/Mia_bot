@@ -1,19 +1,17 @@
-from aiogram import Router,types
-from aiogram.filters import Command, StateFilter
+from aiogram import Router, types
+from aiogram.filters import Command
 from aiogram import F
-from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InlineKeyboardMarkup,CallbackQuery
-import FSM.classes
+from aiogram.types import InlineKeyboardMarkup, CallbackQuery
 import keyboards
 
 settings_router = Router(name='settings_router')
 
 
-@settings_router.message(Command(commands='settings'), ~StateFilter(FSM.classes.FSMuser_state.not_registered))
-async def open_settings(message: types.Message, state: FSMContext):
-    notifications_are_on = settings.notification
-    if notifications_are_on:
+@settings_router.message(Command(commands='settings'))
+async def open_settings(message: types.Message, notifications: int):
+
+    if notifications == 1:
         await message.answer(text="<b>⚙️ Настройки</b>",
                              reply_markup=InlineKeyboardMarkup(
                                     inline_keyboard=[[keyboards.inline.noti_off_button],
@@ -23,7 +21,7 @@ async def open_settings(message: types.Message, state: FSMContext):
             inline_keyboard=[[keyboards.inline.noti_on_button], [keyboards.inline.settings_exit_button]]))
 
 
-@settings_router.callback_query(F.data == 'settings_exit', ~StateFilter(FSM.classes.FSMuser_state.not_registered))
+@settings_router.callback_query(F.data == 'settings_exit')
 async def exit_settings(callback: CallbackQuery):
     try:
         await callback.answer()

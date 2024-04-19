@@ -1,4 +1,4 @@
-from aiogram import types,Router
+from aiogram import types, Router
 
 wrong_cmd_router = Router(name='wrong_cmd_router')
 

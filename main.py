@@ -24,7 +24,7 @@ USER = config.db.user
 PASSWORD = config.db.password
 DB_NAME = config.db.db_name
 
-redis = Redis(host='localhost',port=6379)
+redis = Redis(host='localhost', port=6379)
 database = Database()
 storage = RedisStorage(redis=redis)
 
@@ -35,6 +35,7 @@ loop = asyncio.get_event_loop()
 dp.message.outer_middleware(CommonMiddleWare(database=database, redis=redis))
 dp.edited_message.outer_middleware(CommonMiddleWare(database=database, redis=redis))
 dp.message_reaction.outer_middleware(CommonMiddleWare(database=database, redis=redis))
+dp.callback_query.outer_middleware(CommonMiddleWare(database=database, redis=redis))
 
 dp.include_router(apsched_router)
 dp.include_router(start_router)
@@ -51,7 +52,7 @@ async def main(database: Database):
 
 try:
     if __name__ == "__main__":
-        
+
         logging.basicConfig(level=logging.INFO, stream=sys.stdout)
         loop.run_until_complete(main(database))
 
@@ -62,7 +63,5 @@ except KeyboardInterrupt:
     loop.close()
 
 
-# TODO: state изменяется на дефолтный при заходе в режим GPT, изучить MagicData + написать Middleware
-# Ссыль: https://mastergroosha.github.io/aiogram-3-guide/filters-and-middlewares/
-
-# TODO: сделать lexicon.py со всеми текстами для работы бота. Можно потом перевести все на английский.
+# TODO: сделать lexicon.py со всеми текстами для работы бота.
+# Можно потом перевести все на английский.
