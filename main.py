@@ -61,7 +61,3 @@ except KeyboardInterrupt:
 
     print("[INFO] Бот выключен.")
     loop.close()
-
-
-# TODO: сделать lexicon.py со всеми текстами для работы бота.
-# Можно потом перевести все на английский.

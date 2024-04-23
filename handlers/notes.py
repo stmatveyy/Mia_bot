@@ -104,11 +104,14 @@ async def delete_note(callback: CallbackQuery,
 async def note_delete(message: types.Message,
                       state: FSMContext,
                       database: Database) -> None:
-    if message.text and message.text.isnumeric():
+    
+    message_is_valid: bool = message.text and message.text.isnumeric()
+
+    if message_is_valid:
 
         all_notes = await db_notes.view_all_notes(message.from_user.id, database)
 
-        if int(message.text) >= all_notes[1]:
+        if int(message.text) >= all_notes[1] or int(message.text) == 0:
             await message.answer(text="<b>Такой заметки не существует</b>\nПопробуй еще раз или нажми «Назад»",
                                  reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
 
