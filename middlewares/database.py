@@ -28,7 +28,7 @@ class CommonMiddleWare(BaseMiddleware):
         data["settings_first_time"] = 1
 
         # Собираем словарь только тех пар, которые относятся к пользователю
-        params_needed: list = ["approved", "notifications"]
+        params_needed: list[str] = ["approved", "notifications", "settings_first_time"]
         user_specific_data: dict = {k:v for k, v in data.items() if k in params_needed} 
 
         # Получаем параметр допуска пользователя к боту из Redis'a
