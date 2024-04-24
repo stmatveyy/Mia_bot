@@ -57,7 +57,7 @@ try:
         loop.run_until_complete(main(database))
 
 except KeyboardInterrupt:
+    
     loop.run_until_complete(database.close())
-
     print("[INFO] Бот выключен.")
     loop.close()

@@ -3,21 +3,16 @@ from aiogram import F
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
 
 from datetime import datetime, timedelta
-
 import database.select_schedule
 import asyncio
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import keyboards
+from database.jobstore import scheduler
 
 
 async def schedule():
     return await database.select_schedule.get_todays_schedule()
 
-# schedule_for_today = asyncio.run(schedule()) ## НЕ ТЕСТИРОВАЛОСЬ.
-
-scheduler = AsyncIOScheduler()
 apsched_router = Router(name="apsched_router")
-
 
 async def send_message_cron(bot: Bot, msg_id: int) -> None:
     '''Отправляет сообщение с расписанием.'''
