@@ -18,3 +18,5 @@ temp/dev/requirements.txt
 handlers/__pycache__/apshced.cpython-311.pyc
 config_data/__pycache__/config.cpython-311.pyc
 
+test.py
+
