@@ -1,12 +1,13 @@
 from database.database_func import Database
-from datetime import datetime as dt
+from misc.SQL_dict import SQL_queries as sql
+
 # Интерфейс для удаления заметок / напоминаний / ... из своих таблиц. Передавать тип сущности при вызове.
 
 allowed_types:list[str] = ['notes', 'reminders']
 
 async def check_user_id(telegram_id: int, database: Database) -> int:
     '''Возвращает ID пользователя из таблицы.'''
-    res = await database.view(query=f'SELECT "id" FROM "public.users" WHERE "telegram_id"={telegram_id}')
+    res = await database.view(query=sql.USER_ID(telegram_id))
     return int(res[0][0])
 
 
@@ -15,13 +16,13 @@ async def check_entity_id(telegram_id: int, database: Database, type_: str) -> l
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     final_list = []
-    raw_data = await database.view(f'SELECT "id" FROM "public.{type_}" WHERE "fk_user_{type_[:-1]}"={user_id}')
+    raw_data = await database.view(sql.ENTITY_ID(type_, telegram_id))
     for el in raw_data:
         final_list.append(el[0])
     return final_list
 
 
-async def write_entity(text,
+async def write_entity(text: str,
                        telegram_id: int,
                        database: Database,
                        type_: str,
@@ -32,12 +33,14 @@ async def write_entity(text,
     short_type = type_[:-1]
     user_id = await check_user_id(telegram_id, database)
     
-    if type_ == 'reminders':
-        assert timestamp !=0, "Timestamp is not defined"
-        await database.change(f'INSERT INTO "public.{type_}" ({short_type}_text, fk_user_{short_type}, time_stamp) VALUES ({text}, {user_id}, TIMESTAMP \'{timestamp}\')')
+    match type_:
 
-    else:
-        await database.change(f'INSERT INTO "public.{type_}"({short_type}_text, fk_user_{short_type}) VALUES ({text}, {user_id})')
+        case 'reminders':
+            assert timestamp !=0, "Timestamp is not defined"
+            await database.change(sql.WRITE_REMINDER(type_, short_type, text, user_id, timestamp))
+
+        case 'notes':
+            await database.change(sql.WRITE_NOTE(type_, short_type, text, user_id))
 
 
 async def view_all_entities(telegram_id: int,
@@ -45,16 +48,21 @@ async def view_all_entities(telegram_id: int,
                             type_: str,
                             **timestamp) -> tuple:
     '''Возвращает текст всех сущностей из таблицы'''
+
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     short_type: str = type_[:-1]
     final_str = ''
     counter = 1
-    if type_ == 'reminders':
-        assert timestamp, "Timestamp не определен"
-        raw_data = await database.view(f'SELECT "{short_type}_text", "timestamp" FROM "public.{type_}" WHERE "fk_user_{short_type}"={user_id}')
-    else:
-        raw_data = await database.view(f'SELECT "{short_type}_text" FROM "public.{type_}" WHERE "fk_user_{short_type}"={user_id}')
+    
+    match type_:
+        
+        case 'reminders':
+            assert timestamp, "Timestamp не определен"
+            raw_data = await database.view(sql.VIEW_REMINDERS(short_type, type_, user_id))
+        
+        case 'notes':
+            raw_data = await database.view(sql.VIEW_NOTES(short_type, type_, user_id))
 
     if raw_data == []:
         return 0
@@ -74,12 +82,12 @@ async def delete_entity(telegram_id: int,
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     entities_list = await check_entity_id(telegram_id, database, type_='notes')
-    await database.change(f'DELETE FROM "public.{type_}" WHERE "fk_user_{type_[:-1]}"={user_id} AND id = {entities_list[index-1]}')
+    await database.change(sql.DEL_ENTITY(type_, user_id, entities_list, index))
 
 
 async def delete_all_entities(telegram_id: int, database: Database, type_:str) -> None:
     '''Удаляет все сущности пользователя.'''
     user_id = await check_user_id(telegram_id, database)
-    await database.change(f'DELETE FROM "public.{type_}" WHERE "fk_user_{type_[:-1]}"={user_id}')
+    await database.change(sql.DEL_ALL(type_, user_id))
     
 # Передавать "'текст'" в write_entity
