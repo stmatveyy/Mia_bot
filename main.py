@@ -12,7 +12,7 @@ from handlers.start_and_register import start_router
 from handlers.settings_menu import settings_router
 from handlers.admin import admin_router
 from handlers.GPT import gpt_router
-from handlers.notes import notes_router
+from handlers.notes_reminders import notes_router
 from handlers.apshced import apsched_router
 from handlers.wrong_cmd import wrong_cmd_router
 

@@ -32,7 +32,7 @@ def _view_reminders_(short_type: str,
                         type_: str,
                         user_id: int) -> str:
     
-    return f'SELECT "{short_type}_text", "timestamp" FROM "public.{type_}" WHERE "fk_user_{short_type}"={user_id}'
+    return f'SELECT "{short_type}_text", time_stamp FROM "public.{type_}" WHERE "fk_user_{short_type}"={user_id}'
 
 
 def _view_notes_(short_type: str,
@@ -45,7 +45,7 @@ def _view_notes_(short_type: str,
 def _del_(type_: str,
                 user_id: int,
                 entities_list: list,
-                index: int) -> str:
+                index: int, *args) -> str:
     
     return f'DELETE FROM "public.{type_}" WHERE "fk_user_{type_[:-1]}"={user_id} AND id = {entities_list[index-1]}'
 

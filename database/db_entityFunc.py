@@ -44,34 +44,40 @@ async def write_entity(text: str,
 
 
 async def view_all_entities(telegram_id: int,
-                            database: Database,
-                            type_: str,
-                            **timestamp) -> tuple:
+                            database: Database) -> tuple[str,int]:
     '''Возвращает текст всех сущностей из таблицы'''
 
-    assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
-    short_type: str = type_[:-1]
+
     final_str = ''
+
+    raw_reminders = await database.view(sql.VIEW_REMINDERS('reminder', 'reminders', user_id))
+    raw_notes = await database.view(sql.VIEW_NOTES('note', 'notes', user_id))
     counter = 1
-    
-    match type_:
-        
-        case 'reminders':
-            assert timestamp, "Timestamp не определен"
-            raw_data = await database.view(sql.VIEW_REMINDERS(short_type, type_, user_id))
-        
-        case 'notes':
-            raw_data = await database.view(sql.VIEW_NOTES(short_type, type_, user_id))
 
-    if raw_data == []:
+    if raw_notes is None and raw_reminders is None:
         return 0
+    
     else:
-        for el in raw_data:
-            final_str += (str(counter) + ': <i>' + el[0].strip() + '</i>\n')
-            counter += 1
-        return final_str, counter
+        
+        if raw_reminders is not None:
+            final_str += '<b>\nТвои Напоминания:\n</b>'    
+            for el in raw_reminders:
+                width = 15 - len(el['reminder_text'])
+                final_str += str(counter) + ': <i>' + el['reminder_text'] + '</i><b> ' + "-" *width + ' ' +\
+                               str(el['time_stamp'].date().day) + "." + str(el['time_stamp'].date().month) + \
+                                  " " + str(el['time_stamp'].hour) + ":00" '</b>\n'
+                counter += 1
 
+        
+        if raw_notes is not None:
+
+                    final_str += '<b>\nТвои заметки: \n</b>'
+                    for el in raw_notes:
+                        final_str += (str(counter) + ': <i>' + el[0] + '</i>\n')
+                        counter += 1
+
+        return final_str, counter
 
 async def delete_entity(telegram_id: int,
                         index: int,
@@ -82,7 +88,7 @@ async def delete_entity(telegram_id: int,
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     entities_list = await check_entity_id(telegram_id, database, type_='notes')
-    await database.change(sql.DEL_ENTITY(type_, user_id, entities_list, index))
+    await database.change(sql.DEL_ENTITY(type_=type_, user_id=user_id, entities_list=entities_list, index=index))
 
 
 async def delete_all_entities(telegram_id: int, database: Database, type_:str) -> None:

@@ -21,15 +21,15 @@ async def open_notes(message: types.Message, database: Database) -> None:
 
     '''Отправляет текст всех заметок. При отсутствии предлагает создать новую.'''
     no_notes_text = "<b>У тебя пока нет заметок.</b>\n Нажми <b>«Добавить»</b> для новой"
-    notes_list = await db_entityFunc.view_all_entities(telegram_id=message.from_user.id,
-                                                       database=database,
-                                                       type_='notes')
-    if notes_list == 0:
+    notes_reminders_list = await db_entityFunc.view_all_entities(telegram_id=message.from_user.id,
+                                                       database=database)
+    if notes_reminders_list == 0:
+
         await message.answer(text=no_notes_text, reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[keyboards.inline.notes_add_button], [keyboards.inline.notes_exit_button]]
         ))
     else:
-        await message.answer(text="<b>Твои заметки:</b>\n" + notes_list[0],
+        await message.answer(text= notes_reminders_list[0],
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_add_button],
                                                                                 [keyboards.inline.notes_delete_one_button],
                                                                                 [keyboards.inline.notes_exit_button]]))
@@ -73,8 +73,7 @@ async def add_note(callback: CallbackQuery, state: FSMContext) -> None:
 
 @notes_router.message(F.text, StateFilter(FSM.classes.FSMnotes.adding_note))
 async def ask_for_time(message: types.Message,
-                       state: FSMContext, 
-                       database: Database):
+                       state: FSMContext):
     '''Предлагает установить время и запоминает текст заметки / напоминания'''
 
     await message.answer(text='Добавь время, чтобы заметка стала напоминанием',
@@ -117,25 +116,30 @@ async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Datab
                                     type_='reminders',         
                                     timestamp=timestamp)
 
-    await callback.message.edit_text(text='Placeholder. Working!')
+    notes_reminders_list = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
+                                                       database=database)
+    
+    await callback.message.edit_text(text='Напоминание создано! \n' + notes_reminders_list[0], reply_markup=InlineKeyboardMarkup(
+         inline_keyboard=[[keyboards.inline.notes_add_button],
+                          [keyboards.inline.notes_delete_one_button],
+                          [keyboards.inline.notes_exit_button]]))
+
 
 
 @notes_router.callback_query(F.data == 'no_time')
 async def add_time(callback: CallbackQuery, state: FSMContext, database: Database):
     await callback.answer()
-    note_text = await state.get_data('msg_text')
-
+    data = await state.get_data()
+    note_text = data['msg_text']
     await db_entityFunc.write_entity(text="'" + note_text + "'",
                                      telegram_id=callback.from_user.id,
                                      database=database,
                                      type_='notes')
 
     all_notes = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
-                                                       database=database,
-                                                       type_='notes')
+                                                       database=database)
     
-    await callback.message.edit_text(text="<b>Заметка создана!</b>\nВсе заметки:\n\n" +
-                          all_notes[0], reply_markup=InlineKeyboardMarkup(
+    await callback.message.edit_text(text=all_notes[0], reply_markup=InlineKeyboardMarkup(
          inline_keyboard=[[keyboards.inline.notes_add_button],
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
@@ -168,7 +172,7 @@ async def note_delete(message: types.Message,
 
     if message_is_valid:
 
-        all_notes = await db_entityFunc.view_all_notes(message.from_user.id, database)
+        all_notes = await db_entityFunc.view_all_entities(message.from_user.id, database)
 
         if int(message.text) >= all_notes[1] or int(message.text) == 0:
             await message.answer(text="<b>Такой заметки не существует</b>\nПопробуй еще раз или нажми «Назад»",
@@ -176,7 +180,7 @@ async def note_delete(message: types.Message,
 
         else:
             user_choice = int(message.text)
-            await db_entityFunc.delete_note(message.from_user.id, user_choice, database=database)
+            await db_entityFunc.delete_entity(message.from_user.id, user_choice, database=database, type_='notes')
             all_notes_after_delete = await db_entityFunc.view_all_notes(message.from_user.id, database=database)
 
             if all_notes_after_delete == 0:
@@ -187,7 +191,7 @@ async def note_delete(message: types.Message,
                                                                            [keyboards.inline.notes_exit_button]]))
             else:
                 await asyncio.sleep(0.3)
-                await message.answer(text="<b>Заметка удалена!</b>\nВсе заметки:\n\n" + all_notes_after_delete[0],
+                await message.answer(text="<b>Заметка удалена!</b>\n" + all_notes_after_delete[0],
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                                             [keyboards.inline.notes_add_button],
                                             [keyboards.inline.notes_delete_one_button],

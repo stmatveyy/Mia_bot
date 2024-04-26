@@ -8,3 +8,5 @@ TOMORROW_MOR = dt.combine(dt.now().date() + timedelta(days=1), time(9,0))
 DAYS_3 = dt.combine(dt.now().date() + timedelta(days=3), time(9,0))
 
 WEEKENDS = dt.combine(dt.now().date() + timedelta(5 - dt.now().weekday()), time(12,0))
+
+print(str(WEEKENDS.date().day) + "." + str(WEEKENDS.date().month) + " "+ str(WEEKENDS.hour) + ":00")
