@@ -45,7 +45,7 @@ def _view_notes_(short_type: str,
 def _del_(type_: str,
                 user_id: int,
                 entities_list: list,
-                index: int, *args) -> str:
+                index: int) -> str:
     
     return f'DELETE FROM "public.{type_}" WHERE "fk_user_{type_[:-1]}"={user_id} AND id = {entities_list[index-1]}'
 
@@ -65,16 +65,16 @@ def _register_user_(message, num) -> str:
 
 @dataclass(frozen=True)
 class Queries():
-    USER_ID: Any = _user_id_
-    ENTITY_ID: Any = _entity_id_
+    USER_ID: Any        = _user_id_
+    ENTITY_ID: Any      = _entity_id_
     WRITE_REMINDER: Any = _write_reminder_
-    WRITE_NOTE: Any = _write_note_
+    WRITE_NOTE: Any     = _write_note_
     VIEW_REMINDERS: Any = _view_reminders_
-    VIEW_NOTES: Any = _view_notes_
-    DEL_ENTITY = _del_
-    DEL_ALL = _del_all_
-    CHECK_NUM = _check_num_
-    REG_USER = _register_user_
+    VIEW_NOTES: Any     = _view_notes_
+    DEL_ENTITY: Any     = _del_
+    DEL_ALL: Any        = _del_all_
+    CHECK_NUM: Any      = _check_num_
+    REG_USER: Any       = _register_user_
 
 SQL_queries = Queries()
 

@@ -16,14 +16,14 @@ from misc import times as t
 notes_router = Router(name='notes_router')
 
 
-@notes_router.message(F.text == "Заметки 📒")
+@notes_router.message(F.text == "Заметки")
 async def open_notes(message: types.Message, database: Database) -> None:
 
     '''Отправляет текст всех заметок. При отсутствии предлагает создать новую.'''
-    no_notes_text = "<b>У тебя пока нет заметок.</b>\n Нажми <b>«Добавить»</b> для новой"
+    no_notes_text = "<b>У тебя пока нет записей.</b>\n Нажми <b>«Добавить»</b> для новой"
     notes_reminders_list = await db_entityFunc.view_all_entities(telegram_id=message.from_user.id,
                                                        database=database)
-    if notes_reminders_list == 0:
+    if notes_reminders_list[1] == 1:
 
         await message.answer(text=no_notes_text, reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[keyboards.inline.notes_add_button], [keyboards.inline.notes_exit_button]]
@@ -40,12 +40,11 @@ async def open_notes_callback(callback: CallbackQuery,
                               database: Database) -> None:
     '''Отправляет текст всех заметок. Отвечает на callback'''
     await callback.answer()
-    no_notes_text = "<b>У тебя пока нет заметок.</b>\nНажми «Добавить» для новой"
+    no_notes_text = "<b>У тебя пока нет записей.</b>\nНажми «Добавить» для новой"
     notes_list = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
-                                                       database=database,
-                                                       type_='notes')
+                                                       database=database)
 
-    if notes_list == 0:
+    if notes_list[1] == 1:
 
         await asyncio.sleep(0.3)
         await callback.message.edit_text(text=no_notes_text,
@@ -83,7 +82,7 @@ async def ask_for_time(message: types.Message,
     await state.update_data(msg_text=message.text)
 
 
-@notes_router.callback_query(F.data == 'add_time')
+@notes_router.callback_query(F.data == 'add_time', )
 async def add_time(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     keys = await keyboards.builder.time_keyboard()
@@ -124,10 +123,11 @@ async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Datab
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
 
+    state.set_state(None)
 
 
 @notes_router.callback_query(F.data == 'no_time')
-async def add_time(callback: CallbackQuery, state: FSMContext, database: Database):
+async def no_time(callback: CallbackQuery, state: FSMContext, database: Database):
     await callback.answer()
     data = await state.get_data()
     note_text = data['msg_text']
@@ -139,10 +139,13 @@ async def add_time(callback: CallbackQuery, state: FSMContext, database: Databas
     all_notes = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
                                                        database=database)
     
-    await callback.message.edit_text(text=all_notes[0], reply_markup=InlineKeyboardMarkup(
+    await callback.message.edit_text(text='Заметка создана!\n' + all_notes[0], reply_markup=InlineKeyboardMarkup(
          inline_keyboard=[[keyboards.inline.notes_add_button],
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
+
+    state.set_state(None)
+
 
 @notes_router.message(StateFilter(FSM.classes.FSMnotes.adding_note))
 async def wrong_input(message: types.Message) -> None:
@@ -158,7 +161,7 @@ async def delete_note(callback: CallbackQuery,
     all_notes = await db_entityFunc.view_all_entities(callback.from_user.id, database)
     await callback.answer()
     await asyncio.sleep(0.3)
-    await callback.message.edit_text(text="Напиши номер заметки для удаления\n" + all_notes[0],
+    await callback.message.edit_text(text="Напиши номер записи для удаления\n" + all_notes[0],
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
     await state.set_state(FSM.classes.FSMnotes.deleting_note)
 
@@ -172,20 +175,32 @@ async def note_delete(message: types.Message,
 
     if message_is_valid:
 
-        all_notes = await db_entityFunc.view_all_entities(message.from_user.id, database)
+        all_entities = await db_entityFunc.view_all_entities(message.from_user.id, database)
 
-        if int(message.text) >= all_notes[1] or int(message.text) == 0:
+        if int(message.text) >= all_entities[1] or int(message.text) == 0:
             await message.answer(text="<b>Такой заметки не существует</b>\nПопробуй еще раз или нажми «Назад»",
                                  reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
 
         else:
             user_choice = int(message.text)
-            await db_entityFunc.delete_entity(message.from_user.id, user_choice, database=database, type_='notes')
-            all_notes_after_delete = await db_entityFunc.view_all_notes(message.from_user.id, database=database)
+            # Решаем, удалять заметку или напоминание
+            if user_choice <= all_entities[2]:
+                await db_entityFunc.delete_entity(telegram_id=message.from_user.id, 
+                                                  index=user_choice, 
+                                                  database=database, 
+                                                  type_='reminders')
+            else:
+                user_choice -= all_entities[2]
+                await db_entityFunc.delete_entity(telegram_id=message.from_user.id, 
+                                                  index=user_choice, 
+                                                  database=database, 
+                                                  type_='notes')
 
-            if all_notes_after_delete == 0:
+            all_notes_after_delete = await db_entityFunc.view_all_entities(message.from_user.id, database=database)
+
+            if all_notes_after_delete[1] == 1:
                 await asyncio.sleep(0.3)
-                await message.answer(text="<b>Заметка удалена, а других нет.</b>\nНажми «Добавить» для новой",
+                await message.answer(text="<b>Запись удалена, а других нет.</b>\nНажми «Добавить» для новой",
                                         reply_markup=InlineKeyboardMarkup(inline_keyboard=
                                                                           [[keyboards.inline.notes_add_button],
                                                                            [keyboards.inline.notes_exit_button]]))
@@ -203,9 +218,11 @@ async def note_delete(message: types.Message,
 
 
 @notes_router.callback_query(F.data == 'notes_exit')
-async def exit_notes(callback: CallbackQuery) -> None:
+async def exit_notes(callback: CallbackQuery, state: FSMContext) -> None:
     try:
         await callback.answer()
         await callback.message.delete()
+        state.set_state(None)
     except TelegramBadRequest:
         await callback.answer(text="Старые диалоговые окна не получится закрыть...")
+        state.set_state(None)

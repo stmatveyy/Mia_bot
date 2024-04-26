@@ -3,6 +3,7 @@ from aiogram.filters import Command
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
+from aiogram.fsm.context import FSMContext
 import keyboards
 
 settings_router = Router(name='settings_router')
@@ -22,10 +23,12 @@ async def open_settings(message: types.Message, notifications: int):
 
 
 @settings_router.callback_query(F.data == 'settings_exit')
-async def exit_settings(callback: CallbackQuery):
+async def exit_settings(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.answer()
         await callback.message.delete()
+        await state.set_state(None)
+
     except TelegramBadRequest:
         await callback.answer(text='Старые диалоговые окна не получится закрыть...')
 

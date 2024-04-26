@@ -44,6 +44,7 @@ dp.include_router(wrong_cmd_router)
 def a_exit() -> None:
     loop.run_until_complete(database.close())
     loop.close()
+    
     print("[INFO] Бот выключен.")
    
 
