@@ -151,7 +151,7 @@ async def wrong_input(message: types.Message) -> None:
 async def delete_note(callback: CallbackQuery,
                       state: FSMContext,
                       database: Database) -> None:
-    all_notes = await db_entityFunc.view_all_notes(callback.from_user.id, database)
+    all_notes = await db_entityFunc.view_all_entities(callback.from_user.id, database)
     await callback.answer()
     await asyncio.sleep(0.3)
     await callback.message.edit_text(text="Напиши номер заметки для удаления\n" + all_notes[0],
