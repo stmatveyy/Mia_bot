@@ -19,3 +19,4 @@ async def time_keyboard() -> list[list[InlineKeyboardButton]]:
         keys.append([inline.on_weekend])
 
     return keys
+

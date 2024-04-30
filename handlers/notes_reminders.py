@@ -1,10 +1,11 @@
 import asyncio
-from aiogram import Router, types
+from aiogram import Router, types, Bot
 from aiogram.filters import StateFilter
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
+
 import FSM.classes
 import keyboards
 from database import db_entityFunc
@@ -12,11 +13,14 @@ from database.database_func import Database
 import keyboards.builder
 import keyboards.inline
 from misc import times as t
+from database.jobstore import scheduler
+from . import apshced
+from database.jobstore import add_user_job
 
 notes_router = Router(name='notes_router')
 
 
-@notes_router.message(F.text == "Заметки")
+@notes_router.message(F.text == "Блокнот 📜")
 async def open_notes(message: types.Message, database: Database) -> None:
 
     '''Отправляет текст всех заметок. При отсутствии предлагает создать новую.'''
@@ -65,7 +69,7 @@ async def add_note(callback: CallbackQuery, state: FSMContext) -> None:
     '''Приглашает написать текст заметки.'''
     await asyncio.sleep(0.3)
     await callback.answer()
-    await callback.message.edit_text(text="Напиши текст заметки и отправь его.",
+    await callback.message.edit_text(text="Напиши текст записи и отправь его.",
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
     await state.set_state(FSM.classes.FSMnotes.adding_note)
 
@@ -74,15 +78,15 @@ async def add_note(callback: CallbackQuery, state: FSMContext) -> None:
 async def ask_for_time(message: types.Message,
                        state: FSMContext):
     '''Предлагает установить время и запоминает текст заметки / напоминания'''
-
+    
     await message.answer(text='Добавь время, чтобы заметка стала напоминанием',
-                         reply_markup=InlineKeyboardMarkup(
-                             inline_keyboard=[[keyboards.inline.yes_remind_button],
-                                              [keyboards.inline.no_remind_button]]))
+                            reply_markup=InlineKeyboardMarkup(
+                                inline_keyboard=[[keyboards.inline.yes_remind_button],
+                                                [keyboards.inline.no_remind_button]]))
     await state.update_data(msg_text=message.text)
 
 
-@notes_router.callback_query(F.data == 'add_time', )
+@notes_router.callback_query(F.data == 'add_time' )
 async def add_time(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     keys = await keyboards.builder.time_keyboard()
@@ -92,9 +96,9 @@ async def add_time(callback: CallbackQuery, state: FSMContext):
 
 
 @notes_router.callback_query(F.data.in_({'today_evn', 'tomorrow_mor', 'days_3', 'weekend'}))
-async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Database):
+async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Database, bot: Bot):
     await callback.answer()
-
+    
     all_data = await state.get_data()
     reminder_text = all_data['msg_text']
 
@@ -122,8 +126,19 @@ async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Datab
          inline_keyboard=[[keyboards.inline.notes_add_button],
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
-
-    state.set_state(None)
+    
+    redis_job_id = add_user_job(job_function=apshced.custom_noti,
+                      user_id=callback.from_user.id,
+                      scheduler=scheduler,
+                      trigger='date',
+                      run_date=timestamp,
+                      
+                      kwargs={'chat_id': callback.from_user.id, 'text': reminder_text})
+    
+    await db_entityFunc.write_job_id(database=database,
+                                              telegram_id=callback.from_user.id,
+                                              redis_job_id=redis_job_id)
+    await state.set_state(None)
 
 
 @notes_router.callback_query(F.data == 'no_time')
@@ -144,13 +159,13 @@ async def no_time(callback: CallbackQuery, state: FSMContext, database: Database
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
 
-    state.set_state(None)
+    await state.set_state(None)
 
 
 @notes_router.message(StateFilter(FSM.classes.FSMnotes.adding_note))
 async def wrong_input(message: types.Message) -> None:
     '''Неверная заметка.'''
-    await message.answer(text="<b>Это не заметка.</b>\nНапиши ее текстом или нажми «Назад»",
+    await message.reply(text="<b>Это не заметка.</b>\nНапиши ее текстом или нажми «Назад»",
                          reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
 
 
@@ -185,10 +200,11 @@ async def note_delete(message: types.Message,
             user_choice = int(message.text)
             # Решаем, удалять заметку или напоминание
             if user_choice <= all_entities[2]:
-                await db_entityFunc.delete_entity(telegram_id=message.from_user.id, 
+                redis_id = await db_entityFunc.delete_entity(telegram_id=message.from_user.id, 
                                                   index=user_choice, 
                                                   database=database, 
                                                   type_='reminders')
+                scheduler.remove_job(job_id=redis_id)
             else:
                 user_choice -= all_entities[2]
                 await db_entityFunc.delete_entity(telegram_id=message.from_user.id, 
@@ -206,14 +222,14 @@ async def note_delete(message: types.Message,
                                                                            [keyboards.inline.notes_exit_button]]))
             else:
                 await asyncio.sleep(0.3)
-                await message.answer(text="<b>Заметка удалена!</b>\n" + all_notes_after_delete[0],
+                await message.answer(text="<b>Запись удалена!</b>\n" + all_notes_after_delete[0],
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                                             [keyboards.inline.notes_add_button],
                                             [keyboards.inline.notes_delete_one_button],
                                             [keyboards.inline.notes_exit_button]]))
             await state.set_state(None)
     else:
-        await message.answer(text="<b>Это не номер заметки.</b>\nПопробуй еще раз или нажми «Назад»",
+        await message.reply(text="<b>Это не номер заметки.</b>\nПопробуй еще раз или нажми «Назад»",
                              reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
 
 
@@ -222,7 +238,21 @@ async def exit_notes(callback: CallbackQuery, state: FSMContext) -> None:
     try:
         await callback.answer()
         await callback.message.delete()
-        state.set_state(None)
+        await state.set_state(None)
     except TelegramBadRequest:
         await callback.answer(text="Старые диалоговые окна не получится закрыть...")
-        state.set_state(None)
+        await state.set_state(None)
+
+
+@notes_router.callback_query(F.data == 'remind_again')
+async def rem_again(callback: CallbackQuery, state: FSMContext, database: Database):
+    try:
+        await callback.answer(text="Напоминание перенесено на час. ")
+        await callback.message.delete()
+    except TelegramBadRequest():
+        await callback.answer(text="Старые диалоговые окна не получится закрыть... ")
+
+    
+@notes_router.callback_query(F.data == 'skip_remind')
+async def no_remind(callback: CallbackQuery, state: FSMContext, database: Database):
+    await callback.answer(text="Еще не реализовано такое) ")

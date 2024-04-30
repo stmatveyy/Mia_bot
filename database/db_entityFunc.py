@@ -1,5 +1,6 @@
 from database.database_func import Database
 from misc.SQL_dict import SQL_queries as sql
+from typing import Any
 
 # Интерфейс для удаления заметок / напоминаний / ... из своих таблиц. Передавать тип сущности при вызове.
 
@@ -42,6 +43,20 @@ async def write_entity(text: str,
         case 'notes':
             await database.change(sql.WRITE_NOTE(type_, short_type, text, user_id))
 
+async def write_job_id(database: Database,
+                                telegram_id,
+                                redis_job_id) -> None:
+    '''Записывает id таска в Postgres'''
+    user_id = await check_user_id(database=database, telegram_id=telegram_id)
+    await database.change(f'UPDATE "public.reminders" SET redis_id = \'{redis_job_id}\' WHERE id = (SELECT MAX(id) FROM "public.reminders" WHERE fk_user_reminder = {user_id})')
+
+async def view_all_job_ids(database: Database,
+                           telegram_id: int) -> dict[str:int]:
+    '''Возвращает список всех id задач пользователя'''
+    user_id = await check_user_id(database=database, telegram_id=telegram_id)
+    raw_redis_ids =  await database.view(f'SELECT redis_id, time_stamp FROM "public.reminders" WHERE fk_user_reminder = {user_id}')
+    return {record['redis_id']:record['time_stamp'] for record in raw_redis_ids}
+
 
 async def view_all_entities(telegram_id: int,
                             database: Database) -> tuple:
@@ -66,7 +81,7 @@ async def view_all_entities(telegram_id: int,
             final_str += '<b>\nТвои Напоминания:\n</b>'    
             for el in raw_reminders:
                 width = 15 - len(el['reminder_text'])
-                final_str += str(counter) + ': <i>' + el['reminder_text'] + '</i><b> ' + "-" *width + ' ' +\
+                final_str += '<b>'+ str(counter) + ':</b> <i>' + el['reminder_text'] + '</i> ' + "-" *width + ' <b>' +\
                                str(el['time_stamp'].date().day) + "." + str(el['time_stamp'].date().month) + \
                                   " " + str(el['time_stamp'].hour) + ":00" '</b>\n'
                 counter +=1
@@ -75,24 +90,26 @@ async def view_all_entities(telegram_id: int,
         
         if raw_notes != []:
 
-                    final_str += '<b>\nТвои заметки: \n</b>'
-                    for el in raw_notes:
-                        final_str += (str(counter) + ': <i>' + el[0] + '</i>\n')
-                        counter +=1
-                        notes_counter += 1
+            final_str += '<b>\nТвои заметки: \n</b>'
+            for el in raw_notes:
+                final_str += '<b>' + (str(counter) + ':</b> <i>' + el[0] + '</i>\n')
+                counter +=1
+                notes_counter += 1
 
         return final_str, counter, rem_counter, notes_counter
 
 async def delete_entity(telegram_id: int,
                         index: int,
                         database: Database,
-                        type_: str) -> None | int:
+                        type_: str) -> None | str:
     
-    '''Удаляет выбранную сущность пользователя.'''
+    '''Удаляет выбранную сущность пользователя и возвращает redis_id в случае напоминаний'''
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     entities_list = await check_entity_id(telegram_id, database, type_=type_)
+    redis_id_record = await database.view(f'SELECT redis_id FROM public.reminders WHERE id = {entities_list[index-1]}')
     await database.change(sql.DEL_ENTITY(type_=type_, user_id=user_id, entities_list=entities_list, index=index))
+    return redis_id_record['redis_id']
 
 
 async def delete_all_entities(telegram_id: int, database: Database, type_:str) -> None:

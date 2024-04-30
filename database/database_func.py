@@ -1,6 +1,7 @@
 import asyncpg
 from config_data.config import config
 from typing import Any
+import logging
 
 HOST = config.db.host
 USER = config.db.user
@@ -31,7 +32,7 @@ class Database():
                 await connection.execute(query)
 
         except Exception as _ex:
-            print('[INFO] Ошибка: ', _ex)
+            logging.fatal('[INFO] Ошибка: ' + _ex)
 
     async def view(self, query: str) -> Any:
         try:
@@ -40,7 +41,7 @@ class Database():
                 return data
 
         except Exception as _ex:
-            print('[INFO] Ошибка:', _ex)
+            logging.fatal('[INFO] Ошибка:'+ _ex)
 
     async def close(self) -> None:
         await self.pool.close()

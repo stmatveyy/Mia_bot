@@ -22,7 +22,7 @@ async def cmd_start(message: types.Message,
     else:
         approved = 1
         await message.answer(f'Привет, {message.from_user.first_name}!', reply_markup=keyboards.reply.home_keyboard)
-        return ('approved', approved)
+        return (('approved', approved))
 
 
 @start_router.message(F.content_type == types.ContentType.CONTACT)

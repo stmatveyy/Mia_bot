@@ -19,12 +19,14 @@ from handlers.wrong_cmd import wrong_cmd_router
 from config_data.config import config
 from database.database_func import Database
 from middlewares.database import CommonMiddleWare
+from handlers.apshced import scheduler
+from bot_init import bot
+from database.db_entityFunc import view_all_job_ids
 
 redis = Redis(host='localhost', port=6379)
 database = Database()
 storage = RedisStorage(redis=redis)
 dp = Dispatcher(storage=storage)
-bot = bt(config.tg_bot.token, parse_mode=ParseMode.HTML)
 loop = asyncio.get_event_loop()
 
 dp.message.outer_middleware(CommonMiddleWare(database=database, redis=redis))
@@ -42,17 +44,21 @@ dp.include_router(wrong_cmd_router)
 
 @atexit.register
 def a_exit() -> None:
+    logging.debug('Бот выключается ...')
     loop.run_until_complete(database.close())
+    loop.run_until_complete(redis.bgsave())
+    loop.run_until_complete(asyncio.sleep(2))
+    loop.run_until_complete(redis.aclose())
     loop.close()
-    
-    print("[INFO] Бот выключен.")
+    logging.debug('Бот выключен')
    
 
 async def main(database: Database):
+
     await database._ainit_()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
 
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     loop.run_until_complete(main(database))

@@ -30,6 +30,11 @@ yes_remind_button = InlineKeyboardButton(text='Добавить', callback_data=
 
 no_remind_button = InlineKeyboardButton(text='Пропустить', callback_data='no_time')
 
+remind_again_button = InlineKeyboardButton(text='Напомнить через час', callback_data='remind_again')
+
+skip_remind_button = InlineKeyboardButton(text='Закрыть', callback_data= 'skip_remind')
+
+
 
 # Клавиатура для выбора времени напоминания
 

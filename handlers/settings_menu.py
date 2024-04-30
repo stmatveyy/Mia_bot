@@ -5,14 +5,15 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
 from aiogram.fsm.context import FSMContext
 import keyboards
+from . import apshced
 
 settings_router = Router(name='settings_router')
 
 
 @settings_router.message(Command(commands='settings'))
-async def open_settings(message: types.Message, notifications: int):
+async def open_settings(message: types.Message):
 
-    if notifications == 1:
+    if apshced.scheduler.state == 1:
         await message.answer(text="<b>⚙️ Настройки</b>",
                              reply_markup=InlineKeyboardMarkup(
                                     inline_keyboard=[[keyboards.inline.noti_off_button],
@@ -31,5 +32,3 @@ async def exit_settings(callback: CallbackQuery, state: FSMContext):
 
     except TelegramBadRequest:
         await callback.answer(text='Старые диалоговые окна не получится закрыть...')
-
-# TODO: Middleware и MAGICDATA, после этого переделать код тут
