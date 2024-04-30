@@ -7,11 +7,8 @@ jobstores = {
 }
 scheduler = AsyncIOScheduler(jobstores=jobstores)
 
-def add_user_job(user_id:int, job_function:callable, scheduler: AsyncIOScheduler, trigger, *args, **kwargs) -> str:
+def add_user_job(job_function:callable, scheduler: AsyncIOScheduler, trigger, job_id:str, *args, **kwargs) -> str:
     '''Добавляет задачу в Redis, возвращает ее id'''
-    
-    job_number = str(uuid4())
-    job_id = f"user_{user_id}_{job_function.__name__}_{job_number}"
     scheduler.add_job(func=job_function, trigger=trigger, id=job_id, jobstore='redis', args=args, kwargs=kwargs['kwargs'] )
     return job_id
 

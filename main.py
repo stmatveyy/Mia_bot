@@ -54,7 +54,7 @@ def a_exit() -> None:
    
 
 async def main(database: Database):
-
+    scheduler.print_jobs()
     await database._ainit_()
     await dp.start_polling(bot)
 

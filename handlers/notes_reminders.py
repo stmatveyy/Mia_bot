@@ -5,7 +5,7 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
-
+from uuid import uuid4
 import FSM.classes
 import keyboards
 from database import db_entityFunc
@@ -16,7 +16,11 @@ from misc import times as t
 from database.jobstore import scheduler
 from . import apshced
 from database.jobstore import add_user_job
+from datetime import datetime as dt
+from datetime import time, timedelta
+from aiogram.fsm.storage.redis import Redis
 
+redis = Redis(host='localhost', port=6379)
 notes_router = Router(name='notes_router')
 
 
@@ -127,13 +131,17 @@ async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Datab
                           [keyboards.inline.notes_delete_one_button],
                           [keyboards.inline.notes_exit_button]]))
     
+    job_number = str(uuid4())
+    job_id = f"user_{callback.from_user.id}_{job_number}"
+
     redis_job_id = add_user_job(job_function=apshced.custom_noti,
                       user_id=callback.from_user.id,
                       scheduler=scheduler,
                       trigger='date',
                       run_date=timestamp,
+                      job_id=job_id,
                       
-                      kwargs={'chat_id': callback.from_user.id, 'text': reminder_text})
+                      kwargs={'chat_id': callback.from_user.id, 'text': reminder_text, 'job_id':job_id})
     
     await db_entityFunc.write_job_id(database=database,
                                               telegram_id=callback.from_user.id,
@@ -245,7 +253,11 @@ async def exit_notes(callback: CallbackQuery, state: FSMContext) -> None:
 
 
 @notes_router.callback_query(F.data == 'remind_again')
-async def rem_again(callback: CallbackQuery, state: FSMContext, database: Database):
+async def rem_again(callback: CallbackQuery):
+    job_ = await redis.get(str(callback.from_user.id) + 'REM')
+    job_id = job_.decode('utf-8')
+    scheduler.reschedule_job(job_id=str(job_id), jobstore='redis', trigger='date', run_date=(dt.now() + timedelta(hours=1)))
+
     try:
         await callback.answer(text="Напоминание перенесено на час. ")
         await callback.message.delete()
@@ -255,4 +267,8 @@ async def rem_again(callback: CallbackQuery, state: FSMContext, database: Databa
     
 @notes_router.callback_query(F.data == 'skip_remind')
 async def no_remind(callback: CallbackQuery, state: FSMContext, database: Database):
-    await callback.answer(text="Еще не реализовано такое) ")
+    try:
+        await callback.answer(text="Напоминание закрыто ")
+        await callback.message.delete()
+    except TelegramBadRequest():
+        await callback.answer(text="Старые диалоговые окна не получится закрыть... ")
