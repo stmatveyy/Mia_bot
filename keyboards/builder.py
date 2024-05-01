@@ -1,11 +1,12 @@
-from . import inline, reply
+from . import inline
 from datetime import datetime as dt
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton
+
 
 async def time_keyboard() -> list[list[InlineKeyboardButton]]:
 
-    is_evening:bool = dt.now().hour in [0] + [j for j in range(17, 23)]
-    is_weekend:bool = dt.now().weekday() in [5,6]
+    is_evening: bool = dt.now().hour in [0] + [j for j in range(17, 23)]
+    is_weekend: bool = dt.now().weekday() in [5, 6]
 
     keys: list[list[InlineKeyboardButton]] = []
 
@@ -19,4 +20,3 @@ async def time_keyboard() -> list[list[InlineKeyboardButton]]:
         keys.append([inline.on_weekend])
 
     return keys
-

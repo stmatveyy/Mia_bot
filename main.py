@@ -2,10 +2,8 @@ import asyncio
 import logging
 import sys
 import atexit
-
-from aiogram import Bot as bt
 from aiogram import Dispatcher
-from aiogram.enums import ParseMode
+
 from aiogram.fsm.storage.redis import RedisStorage, Redis
 
 from handlers.start_and_register import start_router
@@ -16,12 +14,11 @@ from handlers.notes_reminders import notes_router
 from handlers.apshced import apsched_router
 from handlers.wrong_cmd import wrong_cmd_router
 
-from config_data.config import config
 from database.database_func import Database
 from middlewares.database import CommonMiddleWare
 from handlers.apshced import scheduler
 from bot_init import bot
-from database.db_entityFunc import view_all_job_ids
+
 
 redis = Redis(host='localhost', port=6379)
 database = Database()
@@ -42,6 +39,7 @@ dp.include_router(gpt_router)
 dp.include_router(notes_router)
 dp.include_router(wrong_cmd_router)
 
+
 @atexit.register
 def a_exit() -> None:
     logging.debug('Бот выключается ...')
@@ -51,7 +49,7 @@ def a_exit() -> None:
     loop.run_until_complete(redis.aclose())
     loop.close()
     logging.debug('Бот выключен')
-   
+
 
 async def main(database: Database):
     scheduler.print_jobs()

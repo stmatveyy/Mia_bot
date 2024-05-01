@@ -1,23 +1,25 @@
 import asyncio
+from uuid import uuid4
+
 from aiogram import Router, types, Bot
 from aiogram.filters import StateFilter
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, CallbackQuery
-from uuid import uuid4
+
 import FSM.classes
 import keyboards
 from database import db_entityFunc
 from database.database_func import Database
+from database.jobstore import scheduler
+
 import keyboards.builder
 import keyboards.inline
 from misc import times as t
-from database.jobstore import scheduler
+
 from . import apshced
-from database.jobstore import add_user_job
-from datetime import datetime as dt
-from datetime import time, timedelta
+
 from aiogram.fsm.storage.redis import Redis
 
 redis = Redis(host='localhost', port=6379)
@@ -47,7 +49,11 @@ async def open_notes(message: types.Message, database: Database) -> None:
 async def open_notes_callback(callback: CallbackQuery,
                               database: Database) -> None:
     '''Отправляет текст всех заметок. Отвечает на callback'''
-    await callback.answer()
+    try:
+        await callback.answer()
+    except TelegramBadRequest:
+        pass
+
     no_notes_text = "<b>У тебя пока нет записей.</b>\nНажми «Добавить» для новой"
     notes_list = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
                                                        database=database)
@@ -72,7 +78,11 @@ async def open_notes_callback(callback: CallbackQuery,
 async def add_note(callback: CallbackQuery, state: FSMContext) -> None:
     '''Приглашает написать текст заметки.'''
     await asyncio.sleep(0.3)
-    await callback.answer()
+    try:
+        await callback.answer()
+    except TelegramBadRequest:
+        pass
+
     await callback.message.edit_text(text="Напиши текст записи и отправь его.",
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
     await state.set_state(FSM.classes.FSMnotes.adding_note)
@@ -82,7 +92,7 @@ async def add_note(callback: CallbackQuery, state: FSMContext) -> None:
 async def ask_for_time(message: types.Message,
                        state: FSMContext):
     '''Предлагает установить время и запоминает текст заметки / напоминания'''
-    
+
     await message.answer(text='Добавь время, чтобы заметка стала напоминанием',
                             reply_markup=InlineKeyboardMarkup(
                                 inline_keyboard=[[keyboards.inline.yes_remind_button],
@@ -91,8 +101,12 @@ async def ask_for_time(message: types.Message,
 
 
 @notes_router.callback_query(F.data == 'add_time' )
-async def add_time(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
+async def add_time(callback: CallbackQuery, state: FSMContext) -> None:
+    try:
+        await callback.answer()
+    except TelegramBadRequest:
+        pass
+
     keys = await keyboards.builder.time_keyboard()
     await callback.message.edit_text('Когда напомнить? ', reply_markup=
                                      InlineKeyboardMarkup(inline_keyboard=keys))
@@ -101,8 +115,11 @@ async def add_time(callback: CallbackQuery, state: FSMContext):
 
 @notes_router.callback_query(F.data.in_({'today_evn', 'tomorrow_mor', 'days_3', 'weekend'}))
 async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Database, bot: Bot):
-    await callback.answer()
-    
+    try:
+        await callback.answer()
+    except TelegramBadRequest:
+        pass
+
     all_data = await state.get_data()
     reminder_text = all_data['msg_text']
 
@@ -134,23 +151,26 @@ async def time_chosen(callback: CallbackQuery, state: FSMContext, database:Datab
     job_number = str(uuid4())
     job_id = f"user_{callback.from_user.id}_{job_number}"
 
-    redis_job_id = add_user_job(job_function=apshced.custom_noti,
-                      user_id=callback.from_user.id,
-                      scheduler=scheduler,
-                      trigger='date',
-                      run_date=timestamp,
-                      job_id=job_id,
-                      
+    scheduler.add_job(func=apshced.custom_noti,
+                      trigger='cron',
+                      hour='*',
+                      id=job_id,
+                      start_date=timestamp,
+                      misfire_grace_time=None,
+                      jobstore='redis',
                       kwargs={'chat_id': callback.from_user.id, 'text': reminder_text, 'job_id':job_id})
-    
+
     await db_entityFunc.write_job_id(database=database,
                                               telegram_id=callback.from_user.id,
-                                              redis_job_id=redis_job_id)
+                                              redis_job_id=job_id)
     await state.set_state(None)
 
 
 @notes_router.callback_query(F.data == 'no_time')
-async def no_time(callback: CallbackQuery, state: FSMContext, database: Database):
+async def no_time(callback: CallbackQuery,
+                  state: FSMContext,
+                  database: Database) -> None:
+    
     await callback.answer()
     data = await state.get_data()
     note_text = data['msg_text']
@@ -161,7 +181,7 @@ async def no_time(callback: CallbackQuery, state: FSMContext, database: Database
 
     all_notes = await db_entityFunc.view_all_entities(telegram_id=callback.from_user.id,
                                                        database=database)
-    
+
     await callback.message.edit_text(text='Заметка создана!\n' + all_notes[0], reply_markup=InlineKeyboardMarkup(
          inline_keyboard=[[keyboards.inline.notes_add_button],
                           [keyboards.inline.notes_delete_one_button],
@@ -182,7 +202,11 @@ async def delete_note(callback: CallbackQuery,
                       state: FSMContext,
                       database: Database) -> None:
     all_notes = await db_entityFunc.view_all_entities(callback.from_user.id, database)
-    await callback.answer()
+    try:
+        await callback.answer()
+    except TelegramBadRequest:
+        pass
+
     await asyncio.sleep(0.3)
     await callback.message.edit_text(text="Напиши номер записи для удаления\n" + all_notes[0],
                                      reply_markup=InlineKeyboardMarkup(inline_keyboard=[[keyboards.inline.notes_back_button]]))
@@ -248,27 +272,26 @@ async def exit_notes(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.delete()
         await state.set_state(None)
     except TelegramBadRequest:
-        await callback.answer(text="Старые диалоговые окна не получится закрыть...")
         await state.set_state(None)
 
 
 @notes_router.callback_query(F.data == 'remind_again')
-async def rem_again(callback: CallbackQuery):
-    job_ = await redis.get(str(callback.from_user.id) + 'REM')
-    job_id = job_.decode('utf-8')
-    scheduler.reschedule_job(job_id=str(job_id), jobstore='redis', trigger='date', run_date=(dt.now() + timedelta(hours=1)))
-
+async def rem_again(callback: CallbackQuery) -> None:
     try:
         await callback.answer(text="Напоминание перенесено на час. ")
         await callback.message.delete()
     except TelegramBadRequest():
-        await callback.answer(text="Старые диалоговые окна не получится закрыть... ")
+        await callback.message.edit_text(text='Напоминание перенесено на час. ')
 
-    
+
 @notes_router.callback_query(F.data == 'skip_remind')
-async def no_remind(callback: CallbackQuery, state: FSMContext, database: Database):
+async def no_remind(callback: CallbackQuery, state: FSMContext, database: Database) -> None:
+    job_ = await redis.get(str(callback.from_user.id) + 'REM')
+    job_id = job_.decode('utf-8')
+    scheduler.remove_job(job_id=job_id)
+    await database.change(f'DELETE FROM "public.reminders" WHERE redis_id = \'{job_id}\'')
     try:
         await callback.answer(text="Напоминание закрыто ")
         await callback.message.delete()
     except TelegramBadRequest():
-        await callback.answer(text="Старые диалоговые окна не получится закрыть... ")
+        await callback.message.answer(text="Старые диалоговые окна не получится закрыть... ")

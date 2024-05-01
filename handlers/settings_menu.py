@@ -11,7 +11,7 @@ settings_router = Router(name='settings_router')
 
 
 @settings_router.message(Command(commands='settings'))
-async def open_settings(message: types.Message):
+async def open_settings(message: types.Message) -> None:
 
     if apshced.scheduler.state == 1:
         await message.answer(text="<b>⚙️ Настройки</b>",
@@ -24,11 +24,11 @@ async def open_settings(message: types.Message):
 
 
 @settings_router.callback_query(F.data == 'settings_exit')
-async def exit_settings(callback: CallbackQuery, state: FSMContext):
+async def exit_settings(callback: CallbackQuery, state: FSMContext) -> None:
     try:
         await callback.answer()
         await callback.message.delete()
         await state.set_state(None)
 
     except TelegramBadRequest:
-        await callback.answer(text='Старые диалоговые окна не получится закрыть...')
+        await callback.message.answer(text='Старые диалоговые окна не получится закрыть...')

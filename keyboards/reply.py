@@ -6,7 +6,8 @@ homework_button = KeyboardButton(text="Домашка 📚")
 noti_notes_button = KeyboardButton(text="Блокнот 📜")
 
 home_keyboard = ReplyKeyboardMarkup(keyboard=[
-    [gpt_mode_button, homework_button, noti_notes_button]], resize_keyboard=True)
+    [gpt_mode_button, homework_button, noti_notes_button]],
+    resize_keyboard=True)
 
 # GPT клавиатура
 gpt_off_button = KeyboardButton(text="Выключить GPT")

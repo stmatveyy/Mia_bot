@@ -1,7 +1,7 @@
 from database.database_func import Database
 from misc.SQL_dict import SQL_queries as sql
 from typing import Any
-
+import logging
 # Интерфейс для удаления заметок / напоминаний / ... из своих таблиц. Передавать тип сущности при вызове.
 
 allowed_types:list[str] = ['notes', 'reminders']
@@ -107,9 +107,11 @@ async def delete_entity(telegram_id: int,
     assert type_ in allowed_types, f"Типа сущности не существует, разрешенные типы: {allowed_types}"
     user_id = await check_user_id(telegram_id, database)
     entities_list = await check_entity_id(telegram_id, database, type_=type_)
-    redis_id_record = await database.view(f'SELECT redis_id FROM public.reminders WHERE id = {entities_list[index-1]}')
+    
+    redis_id_record = await database.view(f'SELECT redis_id FROM "public.reminders" WHERE id = {entities_list[index-1]}')
+    logging.debug(f'FR0M {__name__}: notifications list: {entities_list}, user_id: {user_id}, supposed id: {entities_list[index-1]}')
     await database.change(sql.DEL_ENTITY(type_=type_, user_id=user_id, entities_list=entities_list, index=index))
-    return redis_id_record['redis_id']
+    return redis_id_record[0]['redis_id'] if redis_id_record else None
 
 
 async def delete_all_entities(telegram_id: int, database: Database, type_:str) -> None:

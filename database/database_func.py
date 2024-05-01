@@ -32,7 +32,7 @@ class Database():
                 await connection.execute(query)
 
         except Exception as _ex:
-            logging.fatal('[INFO] Ошибка: ' + _ex)
+            logging.fatal(f'Ошибка: {_ex}')
 
     async def view(self, query: str) -> Any:
         try:
@@ -41,7 +41,7 @@ class Database():
                 return data
 
         except Exception as _ex:
-            logging.fatal('[INFO] Ошибка:'+ _ex)
+            logging.fatal(f'Ошибка: {_ex}')
 
     async def close(self) -> None:
         await self.pool.close()
