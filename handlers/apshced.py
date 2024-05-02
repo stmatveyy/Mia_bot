@@ -66,7 +66,7 @@ async def notifications(callback: CallbackQuery, bot: Bot, database) -> None:
         scheduler.start()
         await asyncio.sleep(0.3)
 
-        await callback.message.edit_text(text="⚙️Настройки⚙️",
+        await callback.message.edit_text(text="<b>⚙️ Настройки</b>",
                                         reply_markup=InlineKeyboardMarkup(
                                                             inline_keyboard=[
                                                                 [keyboards.inline.noti_off_button],
@@ -82,7 +82,7 @@ async def notifications(callback: CallbackQuery, bot: Bot, database) -> None:
             pass
 
         await asyncio.sleep(0.3)
-        await callback.message.edit_text(text="⚙️Настройки⚙️",
+        await callback.message.edit_text(text="<b>⚙️ Настройки</b>",
                                         reply_markup=InlineKeyboardMarkup(
                                                         inline_keyboard=[[keyboards.inline.noti_off_button],
                                                                         [keyboards.inline.settings_exit_button]]))
@@ -99,7 +99,7 @@ async def pause_notifications(callback: CallbackQuery) -> None:
             pass
 
         await asyncio.sleep(0.3)
-        await callback.message.edit_text(text="⚙️Настройки⚙️",
+        await callback.message.edit_text(text="<b>⚙️ Настройки</b>",
                                         reply_markup=InlineKeyboardMarkup(
                                             inline_keyboard=[[keyboards.inline.noti_on_button],
                                                             [keyboards.inline.settings_exit_button]]))

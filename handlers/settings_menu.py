@@ -19,7 +19,7 @@ async def open_settings(message: types.Message) -> None:
                                     inline_keyboard=[[keyboards.inline.noti_off_button],
                                                      [keyboards.inline.settings_exit_button]]))
     else:
-        await message.answer(text="<i>⚙️ Настройки</i>", reply_markup=InlineKeyboardMarkup(
+        await message.answer(text="<b>⚙️ Настройки</b>", reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[keyboards.inline.noti_on_button], [keyboards.inline.settings_exit_button]]))
 
 
