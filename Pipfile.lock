@@ -490,11 +490,11 @@
         },
         "g4f": {
             "hashes": [
-                "sha256:68d628f8e38ce6a49cb3594189bcec778f7abad45d880d76202b68df3b7f7cf1",
-                "sha256:f4a13e611dd4cb063a5b72091d6dc727c5e49e96928a6dda376b607903bb0a09"
+                "sha256:28abfd2c5df2e52fb2d1c191ea0b0fa504921fe9cc272923b8f255d6e5155078",
+                "sha256:9a2d9a9fd2f314ff2ce21bc79de19584aad4fd5fbc86f85cecf92f1403c92e15"
             ],
             "index": "pypi",
-            "version": "==0.2.9.10"
+            "version": "==0.3.0.7"
         },
         "idna": {
             "hashes": [
