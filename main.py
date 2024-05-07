@@ -20,7 +20,7 @@ from handlers.apshced import scheduler
 from bot_init import bot
 
 
-redis = Redis(host='localhost', port=6379)
+redis = Redis(host='localhost', port=6379) 
 database = Database()
 storage = RedisStorage(redis=redis)
 dp = Dispatcher(storage=storage)

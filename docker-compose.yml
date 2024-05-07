@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+
+  db_postgres:
+
+    image: postgres:16.2
+
+    shm_size: 2000mb
+    environment:
+      POSTGRES_PASSWORD: 125476
+
+  bot:
+
+    build: .
+
+    shm_size: 2000mb
+    ports:
+      - 5432:5432
+
+    network_mode: host
+
+    depends_on:
+      - db_postgres
+      - db_redis
+
+  db_redis:
+
+    image: redis:7.2
+
+    shm_size: 2000mb
+    ports:
+      - 6379:6379
+
+
+
