@@ -31,10 +31,10 @@ class CommonMiddleWare(BaseMiddleware):
         
         # Если значения такого ключa нет, пишем в бд статус конкретного пользователя
         # Эта часть отрабатывает только при первом запуске
-        if approved[0] is None:
+        if approved is None:
             data["approved"] = 0
             user_specific_data: dict = {k:v for k, v in data.items() if k in params_needed} 
-            self.redis.hmset(str(event.from_user.id), user_specific_data)
+            await self.redis.hmset(str(event.from_user.id), user_specific_data)
 
         # Если статус пользователя - без доступа или он не отправил номер телефона, отшиваем его
         elif str(approved[0]) == "'0'" and event.text is not None:
