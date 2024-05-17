@@ -4,24 +4,24 @@ from aiogram.types import TelegramObject
 from database.database_func import Database
 import keyboards.reply
 from redis import Redis
-
+from database.redis_func import RedisPool
+import logging
 
 class CommonMiddleWare(BaseMiddleware):
     '''Мидлварь для передачи экземпляров БД в хэндлеры'''
-    def __init__(self, database: Database, redis: Redis) -> None:
-        assert database, "Database is None when CommonMiddleWare is initialized"
-        assert redis, "Redis is None when CommonMiddleWare is initialized"
+    def __init__(self, database: Database) -> None:
+        assert database is not None, "Database is None when CommonMiddleWare is initialized"
         self.database = database
-        self.redis = redis
-
-
+        
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: Dict[str, Any]
     ) -> Any:
-
+        redis_pool = RedisPool()
+        await redis_pool.__ainit__() 
+        self.redis = redis_pool.client
         # Собираем словарь только тех пар, которые относятся к пользователю
         params_needed: list[str] = ["approved"]
     
@@ -29,6 +29,7 @@ class CommonMiddleWare(BaseMiddleware):
         dependencies_redis_data: list = await self.redis.hmget(str(event.from_user.id), ["approved"])
         approved = dependencies_redis_data[0]
         
+        logging.debug(f"Redis approved: {approved}. All dependencies: {dependencies_redis_data}")
         # Если значения такого ключa нет, пишем в бд статус конкретного пользователя
         # Эта часть отрабатывает только при первом запуске
         if approved[0] is None:

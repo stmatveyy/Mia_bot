@@ -6,7 +6,7 @@ services:
 
     image: postgres:16.2
 
-    shm_size: 2000mb
+    shm_size: 200mb
     environment:
       POSTGRES_PASSWORD: 125476
 
@@ -14,7 +14,7 @@ services:
 
     build: .
 
-    shm_size: 2000mb
+    shm_size: 200mb
     ports:
       - 5432:5432
 
