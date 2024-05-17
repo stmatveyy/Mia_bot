@@ -6,6 +6,6 @@ COPY . .
 
 RUN pip install pipenv
 
-RUN pipenv install, pipenv shell
+RUN pipenv install
 
-CMD python main.py
+CMD pipenv run python main.py
